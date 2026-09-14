@@ -1,0 +1,1 @@
+../../../shared/scripts/site_config.py

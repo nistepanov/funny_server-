@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=VPN — инструкция и ссылки
+Comment=Подписка, конфиги, что делать если не работает
+Exec=xdg-open https://sub.example.net/help/
+Icon=help-browser
+Categories=Network;
+Terminal=false

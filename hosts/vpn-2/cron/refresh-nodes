@@ -1,0 +1,5 @@
+# Refresh the subscription: mirror working community configs and drop our own
+# nodes that stopped answering from Russia.
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+15 */2 * * * root /usr/local/sbin/refresh-nodes.py >/dev/null 2>&1

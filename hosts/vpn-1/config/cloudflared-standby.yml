@@ -1,0 +1,15 @@
+# Standby replica of the control node's tunnel. Started by hand when that node
+# is lost: running it alongside would split subscription traffic between two
+# machines, and config issuing keeps its state on the other one.
+tunnel: 11111111-1111-1111-1111-111111111111
+credentials-file: /root/.cloudflared/11111111-1111-1111-1111-111111111111.json
+protocol: quic
+ingress:
+  - hostname: gw.example.net
+    path: ^/xh
+    service: http://localhost:8082
+  - hostname: gw.example.net
+    service: http://localhost:8080
+  - hostname: sub.example.net
+    service: http://localhost:8081
+  - service: http_status:404

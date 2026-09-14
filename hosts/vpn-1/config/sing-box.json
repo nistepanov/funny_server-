@@ -1,0 +1,60 @@
+{
+  "log": {
+    "level": "warn",
+    "timestamp": true
+  },
+  "inbounds": [
+    {
+      "type": "hysteria2",
+      "tag": "hysteria2-198.51.100.10",
+      "listen": "198.51.100.10",
+      "listen_port": 443,
+      "users": [
+        {
+          "name": "family",
+          "password": "<REDACTED>"
+        }
+      ],
+      "obfs": {
+        "type": "salamander",
+        "password": "<REDACTED>"
+      },
+      "masquerade": "https://www.samsung.com",
+      "tls": {
+        "enabled": true,
+        "server_name": "h2.example.net",
+        "certificate_path": "/etc/sing-box/tls/fullchain.pem",
+        "key_path": "/etc/sing-box/tls/privkey.pem"
+      }
+    },
+    {
+      "type": "hysteria2",
+      "tag": "hysteria2-203.0.113.11",
+      "listen": "203.0.113.11",
+      "listen_port": 443,
+      "users": [
+        {
+          "name": "family",
+          "password": "<REDACTED>"
+        }
+      ],
+      "obfs": {
+        "type": "salamander",
+        "password": "<REDACTED>"
+      },
+      "masquerade": "https://www.samsung.com",
+      "tls": {
+        "enabled": true,
+        "server_name": "h2.example.net",
+        "certificate_path": "/etc/sing-box/tls/fullchain.pem",
+        "key_path": "/etc/sing-box/tls/privkey.pem"
+      }
+    }
+  ],
+  "outbounds": [
+    {
+      "type": "direct",
+      "tag": "direct"
+    }
+  ]
+}

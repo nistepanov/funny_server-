@@ -1,0 +1,17 @@
+# credentials never belong here — they live only on the control host
+*.key
+*.pem
+*credentials*
+*secret*
+*token*
+.env
+
+# what a deployment calls itself, and which entry points it offers: both stay
+# on the machines, only the examples are tracked
+site.json
+nodes.json
+
+.venv/
+.idea/
+__pycache__/
+*.pyc

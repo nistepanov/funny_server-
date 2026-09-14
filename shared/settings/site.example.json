@@ -1,0 +1,22 @@
+{
+  "page": {
+    "primary": "sub.example.net",
+    "spare": "p.example.net",
+    "spare_address": "192.0.2.11",
+    "issuer": "cfg.example.net",
+    "cookie_domain": "example.net"
+  },
+  "certificate_name": "h2.example.net",
+  "contact": "@your_telegram_handle",
+  "wireguard_endpoint": "wg.example.net:51820",
+  "amneziawg_endpoint": "awg.example.net:40100",
+  "machine": {
+    "label": "provider, country · control",
+    "address": "192.0.2.10"
+  },
+  "mirror": {
+    "address": "198.51.100.10",
+    "sync_key": "/root/.ssh/fleet-sync",
+    "collector_key": "/root/.ssh/fleet-collector"
+  }
+}

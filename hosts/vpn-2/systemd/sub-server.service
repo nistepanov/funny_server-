@@ -1,0 +1,14 @@
+[Unit]
+Description=Static file server for the client subscription
+After=network.target
+
+[Service]
+Type=simple
+
+ExecStart=/usr/local/sbin/sub-server.py
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

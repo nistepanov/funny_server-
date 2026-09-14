@@ -1,0 +1,1 @@
+../../../shared/scripts/build-hysteria2-config.py

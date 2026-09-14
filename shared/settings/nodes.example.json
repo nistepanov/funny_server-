@@ -1,0 +1,38 @@
+{
+  "uuid": "<the client identifier every entry point shares>",
+  "nodes": [
+    {
+      "name": "direct",
+      "kind": "reality",
+      "address": "192.0.2.10",
+      "port": 443,
+      "sni": "www.example.com",
+      "public_key": "<REDACTED>",
+      "short_id": "<REDACTED>",
+      "enabled": true
+    },
+    {
+      "name": "through the CDN",
+      "kind": "cdn",
+      "address": "gw.example.net",
+      "port": 443,
+      "path": "/assets",
+      "enabled": true
+    },
+    {
+      "name": "through the CDN, other shape",
+      "kind": "xhttp",
+      "address": "gw.example.net",
+      "port": 443,
+      "path": "/xh",
+      "enabled": true
+    },
+    {
+      "name": "direct, over UDP",
+      "kind": "hysteria2",
+      "address": "192.0.2.10",
+      "port": 443,
+      "enabled": true
+    }
+  ]
+}

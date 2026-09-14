@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# Toggle the WireGuard tunnel, fetching the personal config on first run.
+set -euo pipefail
+
+CONFIG_URL='https://sub.example.net/get/algo'
+CONFIG_PATH='/etc/wireguard/personal.conf'
+INTERFACE='personal'
+
+if ! sudo test -f "$CONFIG_PATH"; then
+    echo 'Первый запуск: забираю конфиг...'
+    curl -fsSL "$CONFIG_URL" | sudo tee "$CONFIG_PATH" >/dev/null
+    sudo chmod 600 "$CONFIG_PATH"
+fi
+
+if ip link show "$INTERFACE" >/dev/null 2>&1; then
+    echo 'Отключаю...'
+    sudo wg-quick down "$CONFIG_PATH"
+    echo 'VPN выключен.'
+else
+    echo 'Подключаю...'
+    sudo wg-quick up "$CONFIG_PATH"
+    echo 'VPN включён. Проверка адреса:'
+    curl -s --max-time 10 https://ifconfig.co/json | grep -oP '"(ip|country)":\s*"\K[^"]+' || true
+fi
+read -rp 'Enter чтобы закрыть...'

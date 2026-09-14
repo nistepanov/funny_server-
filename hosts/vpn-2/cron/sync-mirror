@@ -1,0 +1,9 @@
+# Keep the standby copy of the pages and subscription current.
+#
+# The geo databases ride a separate weekly run: they are tens of megabytes and
+# almost never change, so carrying them every five minutes would dwarf the
+# traffic of everything else here.
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+*/5 * * * * root /usr/local/sbin/sync-mirror.sh >/dev/null 2>&1
+17 4 * * 1 root /usr/local/sbin/sync-mirror.sh --geo >/dev/null 2>&1
