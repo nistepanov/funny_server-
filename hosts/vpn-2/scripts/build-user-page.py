@@ -32,7 +32,7 @@ def read_token(name):
 
 
 def overall_state(nodes, reserve_count):
-    live = sum(1 for node in nodes if node.get('enabled', True))
+    live = sum(1 for node in nodes if node.get('fault') is None)
     if live >= 2:
         return 'ok', 'Всё работает'
     if live or reserve_count:

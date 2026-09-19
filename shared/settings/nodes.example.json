@@ -8,31 +8,27 @@
       "port": 443,
       "sni": "www.example.com",
       "public_key": "<REDACTED>",
-      "short_id": "<REDACTED>",
-      "enabled": true
+      "short_id": "<REDACTED>"
     },
     {
       "name": "through the CDN",
       "kind": "cdn",
       "address": "gw.example.net",
       "port": 443,
-      "path": "/assets",
-      "enabled": true
+      "path": "/assets"
     },
     {
       "name": "through the CDN, other shape",
       "kind": "xhttp",
       "address": "gw.example.net",
       "port": 443,
-      "path": "/xh",
-      "enabled": true
+      "path": "/xh"
     },
     {
       "name": "direct, over UDP",
       "kind": "hysteria2",
       "address": "192.0.2.10",
-      "port": 443,
-      "enabled": true
+      "port": 443
     }
   ]
 }

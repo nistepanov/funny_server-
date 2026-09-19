@@ -204,11 +204,18 @@ def entry_answers(name, address):
     return ' 200 ' in status or ' 30' in status
 
 
-def find_problems(nodes, machines):
-    problems = []
+def node_problems(nodes):
+    """One line per fault, naming every node it takes down, so one blocked address is one alert."""
+    affected = {}
     for node in nodes:
-        if not node.get('enabled', True):
-            problems.append(f'Точка «{node["name"]}» ({node["address"]}) не видна из России')
+        fault = node.get('fault')
+        if fault is not None:
+            affected.setdefault(fault, []).append(f'«{node["name"]}»')
+    return [f'{fault}. Точки: {", ".join(names)}' for fault, names in affected.items()]
+
+
+def find_problems(nodes, machines):
+    problems = node_problems(nodes)
     for machine in machines:
         if machine.get('error'):
             problems.append(f'Машина {machine["host"]} не отвечает на сбор данных')
@@ -218,8 +225,8 @@ def find_problems(nodes, machines):
     for name, address in ENTRY_POINTS:
         if not entry_answers(name, address):
             problems.append(f'Страница и подписка не открываются по адресу {name}')
-    if not any(node.get('enabled', True) for node in nodes):
-        problems.insert(0, 'Ни одна своя точка не работает — люди сидят на публичных')
+    if all(node.get('fault') is not None for node in nodes):
+        problems.insert(0, 'Ни одна своя точка не открывается из России — люди сидят на публичных')
     return problems
 
 
@@ -257,14 +264,14 @@ def machine_card(machine):
 
 def render(nodes, machines, reserve_count, problems, log_lines, issued_total, issued):
     generated = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')
-    live = sum(1 for node in nodes if node.get('enabled', True))
+    live = sum(1 for node in nodes if node.get('fault') is None)
 
     node_rows = ''.join(
         f'<tr><td>{html.escape(node["name"])}</td>'
         f'<td class="mono">{html.escape(node["address"])}:{node["port"]}</td>'
         f'<td class="mono">{html.escape(node["kind"])}</td>'
-        f'<td><span class="chip {"ok" if node.get("enabled", True) else "bad"}">'
-        f'{"работает" if node.get("enabled", True) else "заблокирован"}</span></td></tr>'
+        f'<td><span class="chip {"ok" if node.get("fault") is None else "bad"}">'
+        f'{"работает" if node.get("fault") is None else "не работает"}</span></td></tr>'
         for node in nodes)
 
     if problems:

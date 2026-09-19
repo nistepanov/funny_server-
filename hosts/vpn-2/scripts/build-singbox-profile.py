@@ -229,10 +229,9 @@ def build_profile(config):
 
 def main():
     config = json.loads(NODES_PATH.read_text())
-    config['nodes'] = [
-        node for node in config['nodes']
-        if node.get('enabled', True) and node['kind'] != 'xhttp'
-    ]
+    config['nodes'] = sorted(
+        (node for node in config['nodes'] if node['kind'] != 'xhttp'),
+        key=lambda node: node.get('fault') is not None)
     profile = build_profile(config)
     token = TOKEN_PATH.read_text().strip()
     target = OUTPUT_DIR / f'{token}.json'

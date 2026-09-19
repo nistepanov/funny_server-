@@ -70,7 +70,8 @@ def build_hysteria2_uri(secrets, node):
 
 def main():
     config = json.loads(NODES_PATH.read_text())
-    config['nodes'] = [node for node in config['nodes'] if node.get('enabled', True)]
+    # Nodes that failed the check from Russia go last, not away: the check can be wrong.
+    config['nodes'].sort(key=lambda node: node.get('fault') is not None)
     own = [build_uri(config['uuid'], node) for node in config['nodes']
            if node['kind'] != 'hysteria2']
     # community configs lead while our own nodes are unproven from Russia
