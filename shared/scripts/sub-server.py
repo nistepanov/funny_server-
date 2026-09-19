@@ -15,13 +15,9 @@ be shared with family, and a shared link eventually travels further than
 intended. Someone who needs a second device asks for it; someone scraping the
 whole directory stops after three.
 
-There are two ways in. One arrives through the edge network, which is convenient
-and hides the machine, but the country these readers live in has started
-throttling that network, so the page it fronts opens only for people who already
-have a working tunnel — exactly the people who do not need it. The other listens
-straight on a public address of the machine. It is easier to block by address,
-and it publishes that address, but it owes nothing to anyone else's network.
-Neither is good enough alone.
+Readers arrive only through the edge network, which hides the machine. A second
+way in, straight on a public address, was dropped once that address got
+blocked: it published the address and died with it.
 """
 import base64
 import functools
@@ -29,7 +25,6 @@ import hashlib
 import hmac
 import http.cookies
 import http.server
-import ssl
 import sys
 import json
 import threading
@@ -66,16 +61,8 @@ OPEN_PREFIXES = ('/rules/',)
 CONFIG_FILENAMES = {'amnezia': 'amneziawg.conf', 'algo': 'wireguard.conf'}
 GUESS_LIMIT = 10
 GUESS_WINDOW = timedelta(hours=1).total_seconds()
-# The public address this node answers on directly, when it answers directly
-# at all. Absent on a node whose addresses are all spoken for.
-DIRECT_ADDRESS_PATH = Path('/usr/local/etc/vpn-subscription/direct-address')
-DIRECT_TLS_PORT = 443
-DIRECT_PLAIN_PORT = 80
-# Shared with the UDP entry point, which already renews it.
-CERTIFICATE_PATH = Path('/etc/sing-box/tls/fullchain.pem')
-PRIVATE_KEY_PATH = Path('/etc/sing-box/tls/privkey.pem')
-# How long a connection may go quiet before it is dropped. Every listener here
-# faces the open internet, where things connect and then say nothing for hours.
+# How long a connection may go quiet before it is dropped, so a stalled one
+# does not hold a thread for hours.
 STALL_TIMEOUT = timedelta(seconds=15).total_seconds()
 
 _lock = threading.Lock()
@@ -274,14 +261,11 @@ class SubscriptionHandler(http.server.SimpleHTTPRequestHandler):
         """Who is asking, for counting and for rate limits.
 
         The edge network replaces the source address with its own and puts the
-        real one in a header. Off that path the header is whatever the caller
-        typed, so it is read only where something trustworthy wrote it.
-
-        A connection dropped before it said anything has no headers at all, and
-        it still has to be loggable.
+        real one in a header. A connection dropped before it said anything has
+        no headers at all, and it still has to be loggable.
         """
         headers = getattr(self, 'headers', None)
-        if self.server.behind_edge and headers is not None:
+        if headers is not None:
             return headers.get('CF-Connecting-IP', self.client_address[0])
         return self.client_address[0]
 
@@ -403,95 +387,21 @@ class SubscriptionHandler(http.server.SimpleHTTPRequestHandler):
 
 
 class PageServer(http.server.ThreadingHTTPServer):
-    """The same pages on every entry point, differing only in what is in front."""
     daemon_threads = True
     allow_reuse_address = True
 
-    def __init__(self, address, handler, behind_edge):
-        self.behind_edge = behind_edge
-        super().__init__(address, handler)
-
     def handle_error(self, request, client_address):
-        """A connection that dies before it becomes a request is not news.
-
-        Scanners reach a public address constantly and speak anything except
-        what is expected there. Since the handshake now happens where requests
-        are served, their failures surface here, and a stack trace for each
-        would bury the lines worth reading.
-        """
+        """A connection that dies before it becomes a request is not worth a stack trace."""
         error = sys.exc_info()[1]
-        if isinstance(error, (ssl.SSLError, TimeoutError, ConnectionError)):
+        if isinstance(error, (TimeoutError, ConnectionError)):
             print(f'{client_address[0]} dropped: {type(error).__name__}', flush=True)
             return
         super().handle_error(request, client_address)
 
 
-class UpgradeHandler(http.server.BaseHTTPRequestHandler):
-    """Send the plain port to the encrypted one.
-
-    Nobody types a scheme, and browsers still try the plain port first for a
-    name they have never seen. Answering nothing there looks like the machine
-    is down; the password would also travel in the clear.
-    """
-    protocol_version = 'HTTP/1.1'
-    timeout = STALL_TIMEOUT
-
-    def do_GET(self):
-        host = self.headers.get('Host', '').split(':')[0]
-        if not host:
-            self.send_error(400)
-            return
-        self.send_response(308)
-        self.send_header('Location', f'https://{host}{self.path}')
-        self.send_header('Content-Length', '0')
-        self.end_headers()
-
-    do_HEAD = do_GET
-    do_POST = do_GET
-
-    def log_message(self, fmt, *args):
-        pass
-
-
-def direct_address():
-    """The public address to answer on, or None on a node without a spare one."""
-    if not DIRECT_ADDRESS_PATH.exists():
-        return None
-    address = DIRECT_ADDRESS_PATH.read_text().strip()
-    return address or None
-
-
-def serve_direct(address, handler):
-    """Answer on a public address, without the edge network in between.
-
-    The encrypted greeting is deliberately left for the thread that will serve
-    the request. A listening socket told to negotiate on its own does it before
-    handing the connection on, so the one thread that accepts connections
-    spends its time talking to whoever knocked last — and someone who knocks
-    and then says nothing keeps it there for good, while everybody else queues
-    behind them until the kernel starts turning arrivals away. A public address
-    is knocked on that way every day.
-    """
-    context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-    context.load_cert_chain(CERTIFICATE_PATH, PRIVATE_KEY_PATH)
-
-    secure = PageServer((address, DIRECT_TLS_PORT), handler, behind_edge=False)
-    secure.socket = context.wrap_socket(secure.socket, server_side=True,
-                                        do_handshake_on_connect=False)
-    threading.Thread(target=secure.serve_forever, daemon=True).start()
-
-    plain = PageServer((address, DIRECT_PLAIN_PORT), UpgradeHandler,
-                       behind_edge=False)
-    threading.Thread(target=plain.serve_forever, daemon=True).start()
-    print(f'direct entry point on {address}', flush=True)
-
-
 def main():
     handler = functools.partial(SubscriptionHandler, directory=SERVE_DIR)
-    address = direct_address()
-    if address is not None and CERTIFICATE_PATH.exists():
-        serve_direct(address, handler)
-    with PageServer(('127.0.0.1', PORT), handler, behind_edge=True) as server:
+    with PageServer(('127.0.0.1', PORT), handler) as server:
         server.serve_forever()
 
 

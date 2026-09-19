@@ -1,8 +1,6 @@
 {
   "page": {
     "primary": "sub.example.net",
-    "spare": "p.example.net",
-    "spare_address": "192.0.2.11",
     "issuer": "cfg.example.net",
     "cookie_domain": "example.net"
   },

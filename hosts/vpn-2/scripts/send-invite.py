@@ -19,10 +19,7 @@ import site_config
 
 CONFIG_DIR = Path('/usr/local/etc/vpn-subscription')
 NOTIFY_PATH = Path('/usr/local/sbin/notify.py')
-# The name that goes through the edge network reads better and hides the
-# machine, so it leads. The other one is the way back in when it is throttled.
 PRIMARY_HOST = site_config.value('page.primary')
-SPARE_HOST = site_config.value('page.spare')
 
 
 def read(name):
@@ -66,8 +63,6 @@ iPhone — <a href="https://apps.apple.com/ru/app/id6472431552">Karing</a>
 
 <b>Подробная страница</b>
 {base}/help/
-Не открывается — запасной адрес: https://{SPARE_HOST}/help/
-Пароль тот же.
 
 <b>Не пересылайте это сообщение дальше.</b> По ссылкам открывается доступ."""
 

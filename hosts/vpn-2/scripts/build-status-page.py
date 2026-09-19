@@ -28,13 +28,9 @@ OUTPUT_DIR = Path('/var/www/sub')
 
 LOCAL_UNITS = ('xray', 'sing-box', 'cloudflared', 'cloudflared-sub',
                'sub-server', 'awg-quick@awg0')
-# The two names the pages answer to, and the address behind each. The name that
-# skips the edge network exists precisely for when the other one is unreachable,
-# so a service being up is not enough: each door gets knocked on separately.
-ENTRY_POINTS = ((site_config.value('page.primary'), None),
-                (site_config.value('page.spare'), site_config.value('page.spare_address')))
+# A service being up is not enough: the page is knocked on the way readers reach it.
+ENTRY_POINT = site_config.value('page.primary')
 ENTRY_TIMEOUT_SECONDS = 15
-DIRECT_ADDRESS_PATH = CONFIG_DIR / 'direct-address'
 # A unit name says what runs, never what breaks for whom when it stops. The
 # page is read while something is already wrong, so each row names the way in
 # that goes down with it, in the same words the instructions use.
@@ -152,14 +148,6 @@ def issued_configs():
     return sum(row[2] for row in rows), rows
 
 
-def direct_entry():
-    """The name this machine answers on without the edge network, if any."""
-    address = DIRECT_ADDRESS_PATH.read_text().strip() if DIRECT_ADDRESS_PATH.exists() else ''
-    if not address:
-        return None
-    return next((name for name, known in ENTRY_POINTS if known == address), address)
-
-
 def collect_local():
     return {
         'host': 'vpn-2',
@@ -168,7 +156,6 @@ def collect_local():
         'units': {unit: unit_state(unit) for unit in LOCAL_UNITS},
         'traffic_gb': monthly_traffic_gb(),
         'wireguard': wireguard_peers('awg', 'awg0'),
-        'direct_entry': direct_entry(),
     }
 
 
@@ -185,16 +172,11 @@ def collect_remote(address, key_path):
                 'error': str(error)[:120], 'units': {}, 'traffic_gb': None, 'wireguard': None}
 
 
-def entry_answers(name, address):
-    """Whether a page entry point still speaks for itself.
-
-    Knocking on the address rather than the name where one is known: a resolver
-    that has not caught up says nothing about whether readers can get through.
-    """
+def entry_answers(name):
+    """Whether the page still opens under its name."""
     context = ssl.create_default_context()
     try:
-        raw = socket.create_connection((address or name, 443),
-                                       timeout=ENTRY_TIMEOUT_SECONDS)
+        raw = socket.create_connection((name, 443), timeout=ENTRY_TIMEOUT_SECONDS)
         with context.wrap_socket(raw, server_hostname=name) as secure:
             secure.sendall(f'HEAD /help/ HTTP/1.1\r\nHost: {name}\r\n'
                            'Connection: close\r\n\r\n'.encode())
@@ -222,9 +204,8 @@ def find_problems(nodes, machines):
         for unit, state in machine.get('units', {}).items():
             if state != 'active':
                 problems.append(f'{machine["host"]}: служба {unit} не работает ({state})')
-    for name, address in ENTRY_POINTS:
-        if not entry_answers(name, address):
-            problems.append(f'Страница и подписка не открываются по адресу {name}')
+    if not entry_answers(ENTRY_POINT):
+        problems.append(f'Страница и подписка не открываются по адресу {ENTRY_POINT}')
     if all(node.get('fault') is not None for node in nodes):
         problems.insert(0, 'Ни одна своя точка не открывается из России — люди сидят на публичных')
     return problems
@@ -247,10 +228,6 @@ def machine_card(machine):
         rows.append(f'<tr><td>пиры {html.escape(kind)}</td>'
                     f'<td><span class="chip {css}">'
                     f'{peers["active"]} из {peers["total"]} за час</span></td></tr>')
-    entry = machine.get('direct_entry')
-    if entry:
-        rows.append(f'<tr><td>прямой вход мимо CDN</td>'
-                    f'<td class="mono">{html.escape(entry)}</td></tr>')
     traffic = machine.get('traffic_gb')
     traffic_text = f'{traffic} ГБ' if traffic is not None else 'нет данных'
     rows.append(f'<tr><td>трафик за месяц</td><td class="mono">{traffic_text}</td></tr>')

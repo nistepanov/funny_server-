@@ -3,9 +3,7 @@
 stops working.
 
 Carries no addresses of its own. Whoever holds the subscription link holds this
-page too, and an address printed here is an address handed onward with it. The
-one exception is the spare entry point: a reader who cannot reach the page has
-no other way to learn where else to knock, so that name is printed in full.
+page too, and an address printed here is an address handed onward with it.
 
 Links are built in the browser from the address the reader arrived on. The page
 answers to more than one name, and a link hard-coded to one of them would send
@@ -15,15 +13,10 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
-import site_config
-
 CONFIG_DIR = Path('/usr/local/etc/vpn-subscription')
 NODES_PATH = CONFIG_DIR / 'nodes.json'
 RESERVE_PATH = CONFIG_DIR / 'reserve.txt'
 OUTPUT_DIR = Path('/var/www/sub')
-# Every name the page answers to. Whichever one the reader is not using is
-# offered as the spare, so the two are never printed the wrong way round.
-ENTRY_HOSTS = (site_config.value('page.primary'), site_config.value('page.spare'))
 
 
 def read_token(name):
@@ -43,7 +36,6 @@ def overall_state(nodes, reserve_count):
 def render(state, headline, tokens):
     generated = datetime.now(timezone.utc).strftime('%d.%m.%Y %H:%M UTC')
     sub = tokens['sub']
-    hosts = json.dumps(ENTRY_HOSTS)
 
     return f"""<!doctype html>
 <html lang="ru"><head><meta charset="utf-8">
@@ -91,9 +83,6 @@ a {{ color:var(--accent); text-underline-offset:2px; }}
 ol, ul {{ margin:0 0 12px; padding-left:22px; }}
 li {{ margin-bottom:5px; }}
 .note {{ color:var(--muted); font-size:14px; }}
-.spare {{ background:var(--warn-bg); color:var(--warn); border-radius:10px;
-         padding:14px 18px; font-size:15px; margin:26px 0; }}
-.spare b {{ font-size:16px; }}
 hr {{ border:0; border-top:1px solid var(--line); margin:30px 0 24px; }}
 </style></head><body><div class="wrap">
 
@@ -170,12 +159,6 @@ hr {{ border:0; border-top:1px solid var(--line); margin:30px 0 24px; }}
   <a href="/get/amnezia/new">скачать ещё один</a>.</p>
 </div>
 
-<div class="spare">
-  <b>Если эта страница перестанет открываться</b><br>
-  Запасной адрес: <a class="other-host" href="#"></a><br>
-  Ссылки на нём те же, пароль тот же. Сохраните адрес заранее.
-</div>
-
 <hr>
 
 <h2>Если перестало работать</h2>
@@ -215,8 +198,6 @@ hr {{ border:0; border-top:1px solid var(--line); margin:30px 0 24px; }}
 <script>
 // Links follow the name the reader arrived on: the page answers to several
 // names, and only the reader knows which of them still works where they are.
-var entryHosts = {hosts};
-
 document.querySelectorAll('.copy').forEach(function (button) {{
   var url = location.origin + button.dataset.path;
   button.textContent = url;
@@ -241,16 +222,6 @@ document.querySelectorAll('.copy').forEach(function (button) {{
       restore();
     }}
   }});
-}});
-
-// Whichever name the reader is not on right now is the one worth writing down.
-var spare = entryHosts.filter(function (host) {{
-  return host !== location.hostname;
-}})[0];
-document.querySelectorAll('.other-host').forEach(function (link) {{
-  if (!spare) {{ link.closest('.spare').remove(); return; }}
-  link.href = 'https://' + spare + '/help/';
-  link.textContent = spare;
 }});
 </script>
 </body></html>"""
