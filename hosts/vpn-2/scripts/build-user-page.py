@@ -90,11 +90,12 @@ hr {{ border:0; border-top:1px solid var(--line); margin:30px 0 24px; }}
 <div class="state {state}">{headline}</div>
 <p class="when">Проверено {generated}</p>
 
-<p>Способ 1 подходит почти всем и сам выбирает рабочий сервер.
-Остальные — на случай, если он не пошёл.</p>
+<p>Способ 1 — самый надёжный: сам выбирает рабочий сервер и переживает
+блокировки, от которых падают остальные. Зато он самый медленный.
+Нужен ВПН побыстрее — ставьте способ 2 или 3, а способ 1 держите про запас.</p>
 
 <div class="card best">
-  <span class="tag">Способ 1 · основной</span>
+  <span class="tag">Способ 1 · самый надёжный, самый медленный</span>
   <h2>Подписка</h2>
 
   <h3>1. Поставьте приложение</h3>
@@ -148,8 +149,8 @@ hr {{ border:0; border-top:1px solid var(--line); margin:30px 0 24px; }}
 <div class="card">
   <span class="tag plain">Способ 3</span>
   <h2>AmneziaWG</h2>
-  <p>Тот же WireGuard, но замаскированный. Медленнее, зато переживает
-  блокировки, от которых способ 2 падает.</p>
+  <p>Тот же WireGuard, но замаскированный. Медленнее способа 2, зато
+  переживает блокировки, от которых тот падает. Всё равно быстрее способа 1.</p>
   <p>Поставьте AmneziaVPN:
   <a href="https://play.google.com/store/apps/details?id=org.amnezia.vpn">Android</a>,
   <a href="https://github.com/amnezia-vpn/amnezia-client/releases/latest">компьютер</a>.
