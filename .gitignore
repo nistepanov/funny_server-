@@ -11,6 +11,14 @@
 site.json
 nodes.json
 
+# machine defences and watchers are kept private, only on the machines
+private/
+sshd-hardening.conf
+fail2ban-*.local
+fleet.local
+watch-peer
+watch-peer.py
+
 .venv/
 .idea/
 __pycache__/
