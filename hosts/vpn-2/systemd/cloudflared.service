@@ -1,0 +1,13 @@
+[Unit]
+Description=Cloudflare Tunnel fronting Xray
+After=network-online.target xray.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/cloudflared --config /root/.cloudflared/config.yml --no-autoupdate tunnel run
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

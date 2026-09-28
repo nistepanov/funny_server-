@@ -1,0 +1,13 @@
+[Unit]
+Description=Cloudflare quick tunnel fronting Xray
+After=network-online.target xray.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/sbin/cf-quick-tunnel.sh
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

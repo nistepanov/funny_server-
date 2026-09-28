@@ -1,0 +1,14 @@
+[Unit]
+Description=Read-only mirror of the subscription and pages
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/var/www/sub
+ExecStart=/usr/bin/python3 /usr/local/sbin/sub-server.py
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

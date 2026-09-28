@@ -1,0 +1,13 @@
+# The subscription and the pages, served by every node that holds a copy.
+#
+# Both nodes join this tunnel, so the edge keeps sending requests to whichever
+# is still answering. The proxy entry points stay on their own tunnels: those
+# are named after the country they leave from, and a request that quietly
+# crossed to the other node would make that name a lie.
+tunnel: 22222222-2222-2222-2222-222222222222
+credentials-file: /root/.cloudflared/22222222-2222-2222-2222-222222222222.json
+protocol: quic
+ingress:
+  - hostname: sub.example.net
+    service: http://localhost:8081
+  - service: http_status:404

@@ -1,0 +1,42 @@
+{
+  "log": { "loglevel": "warning" },
+  "inbounds": [
+    {
+      "tag": "vless-reality",
+      "listen": "0.0.0.0",
+      "port": 443,
+      "protocol": "vless",
+      "settings": {
+        "clients": [ { "id": "<REDACTED-UUID>", "flow": "xtls-rprx-vision", "email": "shared" } ],
+        "decryption": "none"
+      },
+      "streamSettings": {
+        "network": "tcp",
+        "security": "reality",
+        "realitySettings": {
+          "dest": "www.samsung.com:443",
+          "serverNames": [ "www.samsung.com" ],
+          "privateKey": "<REDACTED>",
+          "shortIds": [ "<REDACTED>" ]
+        }
+      },
+      "sniffing": { "enabled": true, "destOverride": [ "http", "tls", "quic" ] }
+    },
+    {
+      "tag": "vless-ws",
+      "listen": "127.0.0.1",
+      "port": 8080,
+      "protocol": "vless",
+      "settings": {
+        "clients": [ { "id": "<REDACTED-UUID>", "email": "shared-cdn" } ],
+        "decryption": "none"
+      },
+      "streamSettings": { "network": "ws", "wsSettings": { "path": "/assets" } },
+      "sniffing": { "enabled": true, "destOverride": [ "http", "tls" ] }
+    }
+  ],
+  "outbounds": [
+    { "tag": "direct", "protocol": "freedom" },
+    { "tag": "block", "protocol": "blackhole" }
+  ]
+}

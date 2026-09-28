@@ -1,0 +1,13 @@
+[Unit]
+Description=Cloudflare Tunnel serving the subscription from this node
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/cloudflared --config /root/.cloudflared/config-sub.yml --no-autoupdate tunnel run
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

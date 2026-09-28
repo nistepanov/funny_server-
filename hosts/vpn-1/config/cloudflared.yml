@@ -1,0 +1,7 @@
+tunnel: 33333333-3333-3333-3333-333333333333
+credentials-file: <REDACTED-PATH>
+protocol: quic
+ingress:
+  - hostname: gw1.example.net
+    service: http://localhost:8080
+  - service: http_status:404

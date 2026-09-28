@@ -1,0 +1,13 @@
+[Unit]
+Description=Standby tunnel replica for the control node
+After=network-online.target xray.service sub-mirror.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/cloudflared --config /root/.cloudflared/standby.yml --no-autoupdate tunnel run
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

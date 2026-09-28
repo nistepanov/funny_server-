@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=WireGuard VPN (вкл/выкл)
+Comment=Переключить туннель WireGuard
+Exec=x-terminal-emulator -e /home/you/.local/bin/vpn-wireguard-toggle
+Icon=network-vpn
+Categories=Network;
+Terminal=false

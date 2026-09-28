@@ -1,0 +1,25 @@
+network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    ens3:
+      addresses:
+        - "198.51.100.10/24"
+        - "203.0.113.11/24"
+      nameservers:
+          addresses:
+              - "8.8.8.8"
+              - "1.1.1.1"
+      routes:
+        - to: default
+          via: 198.51.100.1
+          on-link: true
+        # the second address sits in another subnet: its replies must leave
+        # through its own gateway or they are dropped upstream
+        - to: default
+          via: 203.0.113.1
+          on-link: true
+          table: 100
+      routing-policy:
+        - from: 203.0.113.11
+          table: 100
