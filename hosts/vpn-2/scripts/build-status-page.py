@@ -48,6 +48,7 @@ UNIT_ROLES = {
 # the whole reason one survives blocks the other does not.
 PEER_KINDS = {'awg-quick@awg0': 'AmneziaWG', 'wg-quick@wg0': 'WireGuard'}
 REMOTE_HOSTS = ((site_config.value('mirror.address'), site_config.value('mirror.collector_key')),)
+REMOTE_ATTEMPTS = 3
 FRESH_HANDSHAKE_SECONDS = 3600
 LOG_TAIL_LINES = 20
 
@@ -159,17 +160,28 @@ def collect_local():
     }
 
 
+def fetch_remote_report(address, key_path):
+    """Run the peer's forced-command SSH key once and return its JSON report."""
+    result = subprocess.run(
+        ['ssh', '-i', key_path, '-o', 'BatchMode=yes', '-o', 'ConnectTimeout=15',
+         '-o', 'StrictHostKeyChecking=no', f'root@{address}'],
+        capture_output=True, text=True, timeout=40)
+    if result.returncode != 0:
+        # Stdout is empty here; the real reason is only in stderr.
+        raise RuntimeError(result.stderr.strip().splitlines()[-1] if result.stderr.strip()
+                           else f"ssh exited with {result.returncode}")
+    return json.loads(result.stdout)
+
+
 def collect_remote(address, key_path):
-    """Pull a peer machine's report over its forced-command SSH key."""
-    try:
-        output = subprocess.run(
-            ['ssh', '-i', key_path, '-o', 'BatchMode=yes', '-o', 'ConnectTimeout=15',
-             '-o', 'StrictHostKeyChecking=no', f'root@{address}'],
-            capture_output=True, text=True, timeout=40).stdout
-        return json.loads(output)
-    except Exception as error:
-        return {'host': address, 'label': 'недоступен', 'address': address,
-                'error': str(error)[:120], 'units': {}, 'traffic_gb': None, 'wireguard': None}
+    """Pull a peer machine's report, retrying because sshd may drop a connection under load."""
+    for _ in range(REMOTE_ATTEMPTS):
+        try:
+            return fetch_remote_report(address=address, key_path=key_path)
+        except Exception as error:
+            last_error = error
+    return {'host': address, 'label': 'недоступен', 'address': address,
+            'error': str(last_error)[:120], 'units': {}, 'traffic_gb': None, 'wireguard': None}
 
 
 def entry_answers(name):
