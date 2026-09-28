@@ -25,6 +25,7 @@ ALERT_LOG = Path('/var/log/vpn-alerts.log')
 PROBLEMS_PATH = Path('/var/lib/vpn-configs/problems-seen.json')
 TOTAL_LIMIT = 40
 OUTPUT_DIR = Path('/var/www/sub')
+UPLINK = 'eth0'
 
 LOCAL_UNITS = ('xray', 'sing-box', 'cloudflared', 'cloudflared-sub',
                'sub-server', 'awg-quick@awg0')
@@ -104,7 +105,7 @@ def unit_state(unit):
 
 def monthly_traffic_gb():
     try:
-        output = subprocess.run(['vnstat', '--json', 'm'], capture_output=True, text=True, check=True).stdout
+        output = subprocess.run(['vnstat', '--json', 'm', '-i', UPLINK], capture_output=True, text=True, check=True).stdout
         months = json.loads(output)['interfaces'][0]['traffic']['month']
         today = datetime.now(timezone.utc)
         for entry in months:
