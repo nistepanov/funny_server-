@@ -34,8 +34,9 @@ RESULT_DELAY_SECONDS = 22
 # A page stopped by a filter only fails once its load times out.
 PAGE_RESULT_DELAY_SECONDS = 40
 BETWEEN_CHECKS_SECONDS = 8
-# Every Russian network reaches it: a vantage point that cannot is broken itself.
-REACHABLE_CONTROL = 'ya.ru:443'
+# Every Russian network reaches these: a vantage point that cannot is broken itself.
+# check-host limits checks per target, so the next one is used when it refuses.
+REACHABLE_CONTROLS = ('ya.ru:443', 'yandex.ru:443', 'vk.com:443', 'mail.ru:443')
 # Filtered Russian networks cannot load it: a vantage point that can sees past the filter.
 FILTERED_CONTROL = 'https://www.youtube.com/'
 
@@ -127,10 +128,10 @@ def loads(answer):
     return isinstance(answer, list) and bool(answer) and answer[0] == 1
 
 
-def vantage_problem(name, reachable, filtered):
+def vantage_problem(name, reachable_target, reachable, filtered):
     """Why a vantage point's answers cannot be trusted, or None if they can."""
     if not connects(reachable.get(name)):
-        return f'cannot reach {REACHABLE_CONTROL}'
+        return f'cannot reach {reachable_target}'
     if name not in filtered:
         return f'no answer about {FILTERED_CONTROL}'
     if loads(filtered[name]):
@@ -138,19 +139,37 @@ def vantage_problem(name, reachable, filtered):
     return None
 
 
+def start_reachable_check():
+    """The first control target check-host accepts, with its request id."""
+    for index, target in enumerate(REACHABLE_CONTROLS):
+        if index:
+            time.sleep(BETWEEN_CHECKS_SECONDS)
+        request_id = start_check('tcp', target)
+        if request_id is not None:
+            return target, request_id
+    return None, None
+
+
 def trusted_vantages():
-    """Short names of the vantage points that see what a filtered Russian network sees."""
-    reachable_id = start_check('tcp', REACHABLE_CONTROL)
+    """Short names of the vantage points that see what a filtered Russian network sees.
+
+    None when check-host gave no control answers: that says nothing about the vantage points.
+    """
+    reachable_target, reachable_id = start_reachable_check()
     time.sleep(BETWEEN_CHECKS_SECONDS)
     filtered_id = start_check('http', FILTERED_CONTROL)
+    if reachable_id is None or filtered_id is None:
+        return None
     time.sleep(PAGE_RESULT_DELAY_SECONDS)
-    reachable = read_check(REACHABLE_CONTROL, reachable_id)
+    reachable = read_check(reachable_target, reachable_id)
     filtered = read_check(FILTERED_CONTROL, filtered_id)
+    if not reachable or not filtered:
+        return None
 
     trusted = set()
     for node in RU_NODES:
         name = node.split('.')[0]
-        problem = vantage_problem(name, reachable, filtered)
+        problem = vantage_problem(name, reachable_target, reachable, filtered)
         if problem is None:
             trusted.add(name)
         else:
@@ -275,6 +294,11 @@ def tunnel_is_up(hostname):
 def judge_nodes(nodes):
     """Record on each node what is wrong with it; what changed since the last run."""
     trusted = trusted_vantages()
+    if trusted is None:
+        log('check-host refused the control checks; leaving every node as it is')
+        notify("check-host не дал проверить точки из России (лимит запросов). "
+               "Точки оставлены как были.", key='probes-refused')
+        return []
     if not trusted:
         log('no vantage point can be trusted; leaving every node as it is')
         notify("Проверка точек из России не работает: ни одному пробнику нельзя верить. "
