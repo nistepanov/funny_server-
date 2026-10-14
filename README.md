@@ -1,5 +1,7 @@
 # my_vpn
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 A small self-hosted VPN, run for personal use by a handful of people.
 
 This repository holds the scripts, service definitions, schedules and
