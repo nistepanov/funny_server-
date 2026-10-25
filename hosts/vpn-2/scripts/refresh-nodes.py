@@ -56,6 +56,8 @@ CONNECTIONLESS_KINDS = ('hysteria2',)
 # routing from a service of ours that fell over behind one it still routes.
 CONTROL_PORT = 22
 DIRECT_TIMEOUT_SECONDS = 10
+# Runs every two hours: three runs without probes is six hours blind.
+BLIND_RUNS_BEFORE_ALERT = 3
 
 def notify(text, key=None):
     """Alerting must never block the refresh itself."""
@@ -305,23 +307,49 @@ def tunnel_is_up(hostname):
         return None
 
 
-def judge_nodes(nodes):
+def settle(node, fault):
+    """The fault a node keeps: a new verdict counts only when the next run repeats it.
+
+    Probes flicker on a half-blocked address, and every flip used to be an alert.
+    """
+    if fault == node.get('fault'):
+        node.pop('pending_fault', None)
+        return fault
+    if 'pending_fault' in node and node['pending_fault'] == fault:
+        node.pop('pending_fault')
+        return fault
+    node['pending_fault'] = fault
+    return node.get('fault')
+
+
+def report_blind_run(config, reason, text, key):
+    """One run without probes is routine; only a long gap is worth a message."""
+    log(f'{reason}; leaving every node as it is')
+    config['blind_runs'] = config.get('blind_runs', 0) + 1
+    if config['blind_runs'] >= BLIND_RUNS_BEFORE_ALERT:
+        notify(text, key=key)
+
+
+def judge_nodes(config):
     """Record on each node what is wrong with it; what changed since the last run."""
     trusted = trusted_vantages()
     if trusted is None:
-        log('check-host refused the control checks; leaving every node as it is')
-        notify("check-host не дал проверить точки из России (лимит запросов). "
-               "Точки оставлены как были.", key='probes-refused')
+        report_blind_run(config, 'check-host refused the control checks',
+                         "check-host уже 6 часов не даёт проверить точки из России "
+                         "(лимит запросов). Точки оставлены как были.", 'probes-refused')
         return []
     if not trusted:
-        log('no vantage point can be trusted; leaving every node as it is')
-        notify("Проверка точек из России не работает: ни одному пробнику нельзя верить. "
-               "Точки оставлены как были.", key='probes-untrusted')
+        report_blind_run(config, 'no vantage point can be trusted',
+                         "Проверка точек из России не работает уже 6 часов: ни одному "
+                         "пробнику нельзя верить. Точки оставлены как были.", 'probes-untrusted')
         return []
+    config['blind_runs'] = 0
 
+    nodes = config['nodes']
     verdicts = probe_addresses(nodes, trusted)
     changes = []
-    for node, fault in decide(nodes, verdicts, trusted):
+    for node, verdict in decide(nodes, verdicts, trusted):
+        fault = settle(node, verdict)
         if fault != node.get('fault'):
             changes.append(f'{node["name"]}: {"ok" if fault is None else fault}')
         node['fault'] = fault
@@ -381,7 +409,7 @@ def main():
 
     config = json.loads(NODES_PATH.read_text())
     log('probing own nodes from Russia')
-    changes = judge_nodes(config['nodes'])
+    changes = judge_nodes(config)
 
     if arguments.dry_run:
         log('dry-run: ' + ('; '.join(changes) if changes else 'no changes'))
