@@ -13,6 +13,7 @@ machines, so they sit at the bottom and are labelled as such.
 import argparse
 import base64
 import json
+import socket
 import subprocess
 import sys
 import time
@@ -54,6 +55,7 @@ CONNECTIONLESS_KINDS = ('hysteria2',)
 # an entry port has gone quiet, it tells an address the country has stopped
 # routing from a service of ours that fell over behind one it still routes.
 CONTROL_PORT = 22
+DIRECT_TIMEOUT_SECONDS = 10
 
 def notify(text, key=None):
     """Alerting must never block the refresh itself."""
@@ -261,14 +263,26 @@ def decide(nodes, verdicts, trusted):
             routed[address] = address_routes(address, trusted)
             log(f'  {address}: entry port silent, address routed -> {routed[address]}')
         if routed[address] is False:
-            yield node, f"Адрес {address} заблокирован в России целиком — нужен новый IP"
+            yield node, f"Адрес {address} заблокирован в России — нужен новый IP"
         elif node['kind'] in CONNECTIONLESS_KINDS:
             if routed[address]:
                 yield node, None
+        elif routed[address] and accepts_connections(address, node['port']):
+            # A half-blocked address lets a probe through now and then.
+            yield node, f"Адрес {address} заблокирован в России — нужен новый IP"
         elif routed[address]:
             yield node, f"Адрес {address} виден из России, но точка на нём не отвечает — проверьте службу"
         else:
             yield node, f"Адрес {address} не отвечает из России"
+
+
+def accepts_connections(address, port):
+    """Whether the entry point answers when asked directly, from outside Russia."""
+    try:
+        with socket.create_connection((address, port), timeout=DIRECT_TIMEOUT_SECONDS):
+            return True
+    except OSError:
+        return False
 
 
 def tunnel_is_up(hostname):
