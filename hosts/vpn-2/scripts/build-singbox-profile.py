@@ -22,7 +22,8 @@ RULES_BASE = 'https://' + site_config.value('page.primary') + '/rules'
 RESERVE_PATH = Path('/usr/local/etc/vpn-subscription/reserve.txt')
 HYSTERIA2_PATH = Path('/usr/local/etc/vpn-subscription/hysteria2.json')
 RESERVE_GROUP = 'запасные (чужие серверы)'
-PROBE_URL = 'https://www.gstatic.com/generate_204'
+# Plain HTTP: no TLS handshake to the target, so the delay shown is close to the real round trip.
+PROBE_URL = 'http://cp.cloudflare.com/generate_204'
 PROBE_INTERVAL = '10m'
 PROBE_TOLERANCE = 50
 # sing-box has no XHTTP transport, so those mirrored configs cannot come along
